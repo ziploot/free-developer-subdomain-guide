@@ -91,7 +91,7 @@ if provider == "is-a.dev":
     record_type = "CNAME" if "." in target and not target.replace(".", "").isdigit() else "A"
     content_dict = {
         "owner": {"username": username, "email": email},
-        "record": {record_type: target}
+        "records": {record_type: target}
     }
     content_bytes = (json.dumps(content_dict, indent=2) + "\n").encode("utf-8")
     put_body = {
