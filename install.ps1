@@ -68,11 +68,11 @@ if user_res.status_code != 200:
 username = user_res.json()["login"].lower()
 raw_email = user_res.json().get("email")
 
-# Dynamic Email: Use user's real email if public and valid, otherwise generate unique username@ziploot.app
+# Universal Developer Email: Use user's real email if public, or generate username@github.com to protect brand domain
 if raw_email and not raw_email.endswith("@users.noreply.github.com"):
     email = raw_email
 else:
-    email = username + "@ziploot.app"
+    email = username + "@github.com"
 
 print("[SUCCESS] Authenticated as GitHub User: " + username + " (Email: " + email + ")")
 
