@@ -133,9 +133,9 @@ if pr_res.status_code in [200, 201]:
     pr_data = pr_res.json()
     print("")
     print("========================================================")
-    print(" 🚀 PULL REQUEST SUBMITTED SUCCESSFULLY FOR " + subdomain + "." + provider + "!")
-    print(" 🔗 PR Link: " + str(pr_data.get('html_url')))
-    print(" ⏱️ Expected Approval: 5-15 Minutes")
+    print(" [SUCCESS] PULL REQUEST SUBMITTED SUCCESSFULLY FOR " + subdomain + "." + provider + "!")
+    print(" [PR LINK] " + str(pr_data.get('html_url')))
+    print(" [APPROVAL TIME] Expected Approval: 5-15 Minutes")
     print("========================================================")
 else:
     print("[WARN] PR submission response: " + str(pr_res.status_code) + " - " + str(pr_res.json().get('message')))
