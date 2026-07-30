@@ -37,6 +37,11 @@ if ([string]::IsNullOrWhiteSpace($Target)) {
     exit 1
 }
 
+$UserPurpose = Read-Host "[INPUT] Enter website purpose (e.g. Personal portfolio, AI tools, Node.js scripts)"
+if ([string]::IsNullOrWhiteSpace($UserPurpose)) {
+    $UserPurpose = "Personal developer website showcasing $Subdomain software projects and open-source utilities."
+}
+
 # Clean target URL if protocol passed
 $Target = $Target -replace 'https?://', '' -replace '/.*$', ''
 
@@ -53,6 +58,7 @@ import time
 token = "$GithubToken"
 subdomain = "$Subdomain".lower().strip()
 target = "$Target".strip()
+user_purpose = "$UserPurpose".strip()
 provider = "$Provider"
 
 headers = {
@@ -68,7 +74,6 @@ if user_res.status_code != 200:
 username = user_res.json()["login"].lower()
 raw_email = user_res.json().get("email")
 
-# Universal Developer Email: Use user's real email if public, or generate username@github.com to protect brand domain
 if raw_email and not raw_email.endswith("@users.noreply.github.com"):
     email = raw_email
 else:
@@ -110,7 +115,7 @@ if provider == "is-a.dev":
     print("[SUCCESS] Committed " + file_path + " to branch " + branch_name)
 
     pr_title = "Add " + subdomain + ".is-a.dev"
-    pr_description = "# Requirements\n\n- [x] I **agree** to the [Terms of Service](https://is-a.dev/terms).\n- [x] My file is following the [domain structure](https://docs.is-a.dev/domain-structure/).\n- [x] My website is **reachable** and **completed**.\n- [x] My website is **software development** related.\n- [x] My website is **not for commercial use**.\n- [x] I have provided contact information in the `owner` key.\n- [x] I have provided a preview of my website below.\n\n# Website Preview\nhttps://" + target + "\n\n# Website Purpose\nDeveloper portal providing open-source tools and web applications."
+    pr_description = "# Requirements\n\n- [x] I **agree** to the [Terms of Service](https://is-a.dev/terms).\n- [x] My file is following the [domain structure](https://docs.is-a.dev/domain-structure/).\n- [x] My website is **reachable** and **completed**.\n- [x] My website is **software development** related.\n- [x] My website is **not for commercial use**.\n- [x] I have provided contact information in the `owner` key.\n- [x] I have provided a preview of my website below.\n\n# Website Preview\nhttps://" + target + "\n\n# Website Purpose\n" + user_purpose
 
 else:
     file_path = "cnames_active.js"
@@ -144,8 +149,8 @@ else:
     requests.put("https://api.github.com/repos/" + fork_repo + "/contents/" + file_path, json=put_body, headers=headers)
     print("[SUCCESS] Updated " + file_path + " on branch " + branch_name)
 
-    pr_title = "ziploot.js.org"
-    pr_description = "- [x] There is reasonable content on the page (see: [No Content](https://github.com/js-org/js.org/wiki/No-Content))\n- [x] I have read and accepted the [Terms and Conditions](http://js.org/terms.html)\n- The site content can be seen at https://" + target + "\n\n> The site content is an open-source web application developer portal and is relevant to JavaScript developers specifically because it provides Node.js scripts, developer tools, web automation, and JavaScript utilities."
+    pr_title = subdomain + ".js.org"
+    pr_description = "- [x] There is reasonable content on the page (see: [No Content](https://github.com/js-org/js.org/wiki/No-Content))\n- [x] I have read and accepted the [Terms and Conditions](http://js.org/terms.html)\n- The site content can be seen at https://" + target + "\n\n> " + user_purpose
 
 pr_url = "https://api.github.com/repos/" + upstream_repo + "/pulls"
 pr_body = {
