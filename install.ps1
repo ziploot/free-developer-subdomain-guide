@@ -80,7 +80,7 @@ branch_name = "add-" + subdomain + "-" + str(int(time.time()))
 fork_repo = username + "/" + upstream_repo.split('/')[1]
 
 repo_info = requests.get("https://api.github.com/repos/" + fork_repo, headers=headers).json()
-default_branch = repo_info.get("default_branch", "master" if provider == "js.org" else "main")
+default_branch = repo_info.get("default_branch", "main")
 ref_res = requests.get("https://api.github.com/repos/" + fork_repo + "/git/ref/heads/" + default_branch, headers=headers).json()
 sha = ref_res["object"]["sha"]
 
@@ -93,7 +93,7 @@ if provider == "is-a.dev":
         "owner": {"username": username, "email": email},
         "record": {record_type: target}
     }
-    content_bytes = json.dumps(content_dict, indent=2).encode("utf-8")
+    content_bytes = (json.dumps(content_dict, indent=2) + "\n").encode("utf-8")
     put_body = {
         "message": "Add " + subdomain + ".is-a.dev subdomain",
         "content": base64.b64encode(content_bytes).decode("utf-8"),
@@ -103,7 +103,7 @@ if provider == "is-a.dev":
     print("[SUCCESS] Committed " + file_path + " to branch " + branch_name)
 
     pr_title = "Add " + subdomain + ".is-a.dev"
-    pr_description = "Adding subdomain `" + subdomain + ".is-a.dev` pointing to `" + target + "`."
+    pr_description = "# Requirements\n\n- [x] I **agree** to the [Terms of Service](https://is-a.dev/terms).\n- [x] My file is following the [domain structure](https://docs.is-a.dev/domain-structure/).\n- [x] My website is **reachable** and **completed**.\n- [x] My website is **software development** related.\n- [x] My website is **not for commercial use**.\n- [x] I have provided contact information in the `owner` key.\n- [x] I have provided a preview of my website below.\n\n# Website Preview\nhttps://" + target + "\n\n# Website Purpose\nDeveloper portal providing open-source tools and web applications."
 
 else:
     file_path = "cnames_active.js"
@@ -137,7 +137,7 @@ else:
     requests.put("https://api.github.com/repos/" + fork_repo + "/contents/" + file_path, json=put_body, headers=headers)
     print("[SUCCESS] Updated " + file_path + " on branch " + branch_name)
 
-    pr_title = "Add " + subdomain + ".js.org"
+    pr_title = "ziploot.js.org"
     pr_description = "- [x] There is reasonable content on the page (see: [No Content](https://github.com/js-org/js.org/wiki/No-Content))\n- [x] I have read and accepted the [Terms and Conditions](http://js.org/terms.html)\n- The site content can be seen at https://" + target + "\n\n> The site content is an open-source web application developer portal and is relevant to JavaScript developers specifically because it provides Node.js scripts, developer tools, web automation, and JavaScript utilities."
 
 pr_url = "https://api.github.com/repos/" + upstream_repo + "/pulls"
