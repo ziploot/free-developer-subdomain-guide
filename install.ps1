@@ -74,13 +74,13 @@ upstream_repo = "is-a-dev/register" if provider == "is-a.dev" else "js-org/js.or
 print("[INFO] Forking " + upstream_repo + " to " + username + "...")
 fork_res = requests.post("https://api.github.com/repos/" + upstream_repo + "/forks", headers=headers)
 
-time.sleep(4)
+time.sleep(5)
 
 branch_name = "add-" + subdomain + "-" + str(int(time.time()))
 fork_repo = username + "/" + upstream_repo.split('/')[1]
 
 repo_info = requests.get("https://api.github.com/repos/" + fork_repo, headers=headers).json()
-default_branch = repo_info.get("default_branch", "main")
+default_branch = repo_info.get("default_branch", "master" if provider == "js.org" else "main")
 ref_res = requests.get("https://api.github.com/repos/" + fork_repo + "/git/ref/heads/" + default_branch, headers=headers).json()
 sha = ref_res["object"]["sha"]
 
@@ -91,7 +91,7 @@ if provider == "is-a.dev":
     record_type = "CNAME" if "." in target and not target.replace(".", "").isdigit() else "A"
     content_dict = {
         "owner": {"username": username, "email": email},
-        "record": {record_type: [target]}
+        "record": {record_type: target}
     }
     content_bytes = json.dumps(content_dict, indent=2).encode("utf-8")
     put_body = {
@@ -102,15 +102,30 @@ if provider == "is-a.dev":
     requests.put("https://api.github.com/repos/" + fork_repo + "/contents/" + file_path, json=put_body, headers=headers)
     print("[SUCCESS] Committed " + file_path + " to branch " + branch_name)
 
-else:
+    pr_title = "Add " + subdomain + ".is-a.dev"
+    pr_description = "Adding subdomain `" + subdomain + ".is-a.dev` pointing to `" + target + "`."
+
+else: # js.org strict template
     file_path = "cnames_active.js"
     get_file = requests.get("https://api.github.com/repos/" + fork_repo + "/contents/" + file_path + "?ref=" + branch_name, headers=headers).json()
     file_sha = get_file["sha"]
     raw_content = base64.b64decode(get_file["content"]).decode("utf-8")
     
+    # Format entry cleanly for js.org
     entry_line = '  "' + subdomain + '": "' + target + '",\n'
     if ('"' + subdomain + '":') not in raw_content:
-        updated_content = raw_content.rstrip().rstrip("};") + "\n" + entry_line + "};\n"
+        lines = raw_content.split('\n')
+        new_lines = []
+        inserted = False
+        for line in lines:
+            if not inserted and line.strip().startswith('"') and line.strip().split('"')[1] > subdomain:
+                new_lines.append(entry_line.rstrip('\n'))
+                inserted = True
+            new_lines.append(line)
+        if not inserted:
+            new_lines.insert(len(new_lines)-2, entry_line.rstrip('\n'))
+        
+        updated_content = '\n'.join(new_lines)
         put_body = {
             "message": "Add " + subdomain + ".js.org subdomain",
             "content": base64.b64encode(updated_content.encode("utf-8")).decode("utf-8"),
@@ -120,12 +135,15 @@ else:
         requests.put("https://api.github.com/repos/" + fork_repo + "/contents/" + file_path, json=put_body, headers=headers)
         print("[SUCCESS] Updated " + file_path + " on branch " + branch_name)
 
+    pr_title = "Add " + subdomain + ".js.org"
+    pr_description = "- [x] I have read the [terms and conditions](https://js.org/terms.html).\n- [x] My site has reasonable content.\n\n**Content URL:** https://" + target + "\n**Content Explanation:** ZipLoot web application developer portal providing automated tools, tutorials, and cloud utilities."
+
 pr_url = "https://api.github.com/repos/" + upstream_repo + "/pulls"
 pr_body = {
-    "title": "Add " + subdomain + "." + provider,
+    "title": pr_title,
     "head": username + ":" + branch_name,
     "base": default_branch,
-    "body": "Automated 1-Click Subdomain Registration for `" + subdomain + "." + provider + "` pointing to `" + target + "` via ZipLoot Automator."
+    "body": pr_description
 }
 pr_res = requests.post(pr_url, json=pr_body, headers=headers)
 
