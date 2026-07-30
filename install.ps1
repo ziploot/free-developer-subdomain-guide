@@ -105,38 +105,40 @@ if provider == "is-a.dev":
     pr_title = "Add " + subdomain + ".is-a.dev"
     pr_description = "Adding subdomain `" + subdomain + ".is-a.dev` pointing to `" + target + "`."
 
-else: # js.org strict template
+else:
     file_path = "cnames_active.js"
+    master_cnames = requests.get("https://raw.githubusercontent.com/js-org/js.org/master/cnames_active.js").text
+    
+    lines = master_cnames.splitlines()
+    new_lines = []
+    inserted = False
+    entry_line = '  "' + subdomain + '": "' + target + '",'
+    
+    for line in lines:
+        if not inserted and line.strip().startswith('"') and line.strip().split('"')[1] > subdomain:
+            new_lines.append(entry_line)
+            inserted = True
+        new_lines.append(line)
+    
+    if not inserted:
+        new_lines.insert(len(new_lines)-2, entry_line)
+    
+    updated_content = "\n".join(new_lines) + "\n"
+    
     get_file = requests.get("https://api.github.com/repos/" + fork_repo + "/contents/" + file_path + "?ref=" + branch_name, headers=headers).json()
     file_sha = get_file["sha"]
-    raw_content = base64.b64decode(get_file["content"]).decode("utf-8")
     
-    # Format entry cleanly for js.org
-    entry_line = '  "' + subdomain + '": "' + target + '",\n'
-    if ('"' + subdomain + '":') not in raw_content:
-        lines = raw_content.split('\n')
-        new_lines = []
-        inserted = False
-        for line in lines:
-            if not inserted and line.strip().startswith('"') and line.strip().split('"')[1] > subdomain:
-                new_lines.append(entry_line.rstrip('\n'))
-                inserted = True
-            new_lines.append(line)
-        if not inserted:
-            new_lines.insert(len(new_lines)-2, entry_line.rstrip('\n'))
-        
-        updated_content = '\n'.join(new_lines)
-        put_body = {
-            "message": "Add " + subdomain + ".js.org subdomain",
-            "content": base64.b64encode(updated_content.encode("utf-8")).decode("utf-8"),
-            "sha": file_sha,
-            "branch": branch_name
-        }
-        requests.put("https://api.github.com/repos/" + fork_repo + "/contents/" + file_path, json=put_body, headers=headers)
-        print("[SUCCESS] Updated " + file_path + " on branch " + branch_name)
+    put_body = {
+        "message": "Add " + subdomain + ".js.org subdomain in exact alphabetical order",
+        "content": base64.b64encode(updated_content.encode("utf-8")).decode("utf-8"),
+        "sha": file_sha,
+        "branch": branch_name
+    }
+    requests.put("https://api.github.com/repos/" + fork_repo + "/contents/" + file_path, json=put_body, headers=headers)
+    print("[SUCCESS] Updated " + file_path + " on branch " + branch_name)
 
     pr_title = "Add " + subdomain + ".js.org"
-    pr_description = "- [x] I have read the [terms and conditions](https://js.org/terms.html).\n- [x] My site has reasonable content.\n\n**Content URL:** https://" + target + "\n**Content Explanation:** ZipLoot web application developer portal providing automated tools, tutorials, and cloud utilities."
+    pr_description = "- [x] There is reasonable content on the page (see: [No Content](https://github.com/js-org/js.org/wiki/No-Content))\n- [x] I have read and accepted the [Terms and Conditions](http://js.org/terms.html)\n- The site content can be seen at https://" + target + "\n\n> The site content is an open-source web application developer portal and is relevant to JavaScript developers specifically because it provides Node.js scripts, developer tools, web automation, and JavaScript utilities."
 
 pr_url = "https://api.github.com/repos/" + upstream_repo + "/pulls"
 pr_body = {
